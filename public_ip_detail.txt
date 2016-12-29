@@ -1,0 +1,54 @@
+
+CREATE TABLE cmdb.public_ip_map 
+(
+private_ip VARCHAR(20), 
+public_ip VARCHAR(20),
+firewall_ip VARCHAR(20), 
+hostname VARCHAR(100)
+);
+
+
+select * from cmdb.public_ip_map; -- 534
+
+select private_ip, public_ip, DATA_IP
+from cmdb.public_ip_map map, cmdb.t_server_provisioning tvm
+where 
+(tvm.data_ip = map.private_ip)
+;  -- 116
+
+
+select private_ip, public_ip, VM_DATA_IP
+from cmdb.public_ip_map map, cmdb.t_vm_provisioning tvm
+where 
+(tvm.vm_data_ip = map.private_ip)
+;  -- 82
+
+
+select private_ip,  DATA_IP, public_ip
+from cmdb.public_ip_map map, cmdb.V_SERVER vser
+where vser.data_ip = map.private_ip; -- 198
+
+
+
+select private_ip, ip, public_ip 
+from cmdb.public_ip_map map, cmdb.t_ipstatus ip
+where ip.ip = map.private_ip; -- 299
+
+
+select private_ip, ip, public_ip, subnet, ip_status,  environment, ip.hostname, serialnumber, ipam_update
+from cmdb.public_ip_map map, cmdb.t_ipstatus ip
+where ip.ip = map.private_ip and ip_status = 'USED'; -- 270
+
+
+
+select map.private_ip, ip.ip, map.public_ip, ip.subnet, ip.ip_status, ip.environment, ip.hostname, ip.serialnumber, ip.ipam_update,
+vser.application_name, vser.application_owner_contact_email
+from cmdb.public_ip_map map, cmdb.t_ipstatus ip, cmdb.V_SERVER vser
+where 
+ip.ip = map.private_ip 
+and ip_status = 'USED'
+and ip.ip = vser.data_ip;-- 194
+
+
+select * from cmdb.V_SERVER;
+
