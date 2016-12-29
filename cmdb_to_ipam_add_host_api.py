@@ -22,7 +22,8 @@ import smtplib
 import argparse
 import smtplib
 import commands
-import script_config
+#import script_config
+from config import script_config
 
 # Logging #################################################################
 logger = logging.getLogger(__name__)
@@ -83,6 +84,7 @@ sub_ip_in_ipam = []
 
 # Functions ############################################################################
 def update_host_CLI(subnet, ipaddress, dict_line, Count, cur):
+    #print "Entering Update_host_CLI"
     #if ipaddress in datafile:
     #if dict_line :
     #    logger.info("%s IP Already in IPAM Database because its entry available in table_file." % (ipaddress))
@@ -94,7 +96,9 @@ def update_host_CLI(subnet, ipaddress, dict_line, Count, cur):
 	dnsname = ''
 	view = ''
 	message = '&'.join([keyname, ipaddress, dnsname, view, transactionkey])
+	#print "message: ", message
 	digest = hmac.new(str(transactionkey), message, digestmod=sha256).hexdigest()
+	#print "digest: ", digest
 	location = client.factory.create('IPAMBlock')
 	location.network = sub_ip[0]
 	location.bitmask = sub_ip[1]
@@ -134,6 +138,7 @@ def update_host_CLI(subnet, ipaddress, dict_line, Count, cur):
 	    i4.value = "Vm"
             infos["item"] = [i1, i2, i3, i4]
 	elif Count == 2:
+	    #print "Entering elif Count ==2"
 	    infos = client.factory.create('ArrayOfIPAMInfo') 
 	    i1 = client.factory.create('IPAMInfo')
 	    i1.name = "Hostname"
@@ -146,13 +151,23 @@ def update_host_CLI(subnet, ipaddress, dict_line, Count, cur):
 	    i3.value = dict_line['serialnumber']
 	    i4 = client.factory.create('IPAMInfo')
 	    i4.name = "ServerType"
-	    i4.value = "PublicIP"
-            infos["item"] = [i1, i2, i3, i4]
+            i4.value = "PublicIP"
+	    infos["item"] = [i1, i2, i3, i4]
+	    i5 = client.factory.create('IPAMInfo')
+            i5.name = "RP_Email"
+            i5.value = dict_line['application_owner_contact_email']
+	    i6 = client.factory.create('IPAMInfo')
+            i6.name = "RP_Name"
+            i6.value = dict_line['application_name']
+	    infos["item"] = [i1, i2, i3, i4, i5, i6]
 	try:
 	    if subnet not in sub_not_in_ipam:
+		#print "Entering if subnet not in ipam"
 	        if subnet not in illegal_subnet_in_ipam:
+		    #print "Entering subnet not in illegal_subnet"
 	    	    result=client.service.addHost(keyname, digest, location, ipaddress, owner, dnsname, view, infos=infos, force=False)
-	    	    dict_line['insert_date'] = script_config.today
+		    #print "result: ", result    
+		    dict_line['insert_date'] = script_config.today
 	    	    update_query = ("update t_ipstatus set ipam_update='Updated' where ip='%s' and ipam_update='NEW'" % (ipaddress))
 	    	    fo.write(str(dict_line)+'\n')
 	    	    cur.execute(update_query)
@@ -261,7 +276,7 @@ def delete_host_CLI(subnet, ipaddress, dict_line, cur):
 # Mysql Connection #################################################################
 # Open database connection
 def sql_value():
-    db = MySQLdb.connect(script_config.mysql_server_dev["mysql_host"], script_config.mysql_server_dev["mysql_user"], script_config.mysql_server_dev["mysql_passwd"], script_config.mysql_server_dev["mysql_database"])
+    db = MySQLdb.connect(script_config.mysql_server["mysql_host"], script_config.mysql_server["mysql_user"], script_config.mysql_server["mysql_passwd"], script_config.mysql_server["mysql_database"])
     base = script_config.mysql_query["base"]
     vm = script_config.mysql_query["vm"]
     dele = script_config.mysql_query["dele"]
@@ -271,11 +286,16 @@ def sql_value():
         with closing(db.cursor()) as cur:
 	    cur.execute(query)
 	    row = cur.fetchall()
+	    #print "row:", row
 	    cols = [ d[0] for d in cur.description ]
+	    #print "cols:", cols
 	    for i in row:
 		if i :
 	            res = dict(zip(cols, i))
-            	    update_host_CLI(str(res['subnet']), res['ip'], res, Count, cur)
+            	    #print "res:", res
+		    #print "cur:", cur
+		    #print "Count: ", Count
+		    update_host_CLI(str(res['subnet']), res['ip'], res, Count, cur)
 		
 	Count=Count+1
 	if Count == 3:
